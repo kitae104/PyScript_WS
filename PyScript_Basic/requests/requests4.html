@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+
+    <title>GET, POST, PUT, DELETE example</title>
+
+    <link rel="stylesheet" href="https://pyscript.net/alpha/pyscript.css" />
+    <script defer src="https://pyscript.net/alpha/pyscript.js"></script>
+    <py-env> 
+    - paths: 
+      - /requests/request.py 
+    </py-env>
+  </head>
+
+  <body>
+    <p>Hello world request example! <br /></p>
+    <py-script>
+      import asyncio # important!! 
+      import json 
+      from request import request
+      baseurl = "https://www.naver.com/" 
+      headers = {"Content-type": "application/html"} 
+      response = await request(baseurl, method="GET", headers=headers) 
+      print(response.status)
+    </py-script>
+  </body>
+</html>

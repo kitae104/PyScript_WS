@@ -1,0 +1,17 @@
+<html>
+  <link rel="stylesheet" href="https://pyscript.net/alpha/pyscript.css" />
+  <script defer src="https://pyscript.net/alpha/pyscript.js"></script>
+  <body>
+    Hello, world!
+    <div id="outputDiv" class="font-mono"></div>
+    <py-script>
+from js import XMLHttpRequest
+
+req = XMLHttpRequest.new()
+req.open("GET", "https://myexternalip.com/raw", False)
+req.send(None)
+
+pyscript.write("outputDiv", str(req.response))
+    </py-script>
+  </body>
+</html>

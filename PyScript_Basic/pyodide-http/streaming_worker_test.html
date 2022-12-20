@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  <script>
+    let pyodide=new Worker("pyodide_worker.js")
+    pyodide.onmessage=function(evt)
+    {
+      if(evt.data.results)
+      {
+        if( evt.data.results.state=="INITED")
+        {
+          console.log("Inited ok")
+          pyodide.postMessage({python:`
+import requests
+import base64
+data = requests.get("https://raw.githubusercontent.com/pyodide/pyodide/main/docs/_static/img/pyodide-logo-readme.png")
+data="data:image/png;base64," + base64.b64encode(data.content).decode()
+{"state":"IMAGE","img":data}`})            
+      }else if(evt.data.results.state=="IMAGE")
+        {
+          let imgData=evt.data.results.img;
+          let img = document.createElement("img")
+          img.src=imgData;
+          document.getElementById('result_div').appendChild(img);
+
+          if(!crossOriginIsolated)
+          {
+            document.getElementById('progress_div').innerHTML+=`
+            Page isn't served with correct headers, crossOriginIsolated==false. <br/>
+            Streaming won't work unless you serve as crossOriginIsolated by setting <br/>
+            Cross-Origin-Opener-Policy: same-origin<br/>
+            Cross-Origin-Embedder-Policy: require-corp<br/>`;
+          }
+          console.log("Start streaming")
+          pyodide.postMessage({python:`
+            import requests
+            import base64
+            import js,pyodide.ffi
+            data = requests.get("https://lon.speedtest.clouvider.net/backend/garbage.php?cors=true&r=0.9144966641438186&ckSize=10",stream=True)
+            data2 = requests.get("https://lon.speedtest.clouvider.net/backend/garbage.php?cors=true&r=0.9144966641438186&ckSize=4",stream=True)
+            total_len=0;
+            total_len2=0;
+            while True:
+              buffer=data.raw.read1()
+              buffer2=data2.raw.read1()
+              if len(buffer)==0 and len(buffer2)==0:
+                break
+              else:
+                total_len+=len(buffer)
+                total_len2+=len(buffer2)
+                js.postMessage(pyodide.ffi.to_js({"progress":total_len,"progress2":total_len2},dict_converter=js.Object.fromEntries))
+            {"state":"STREAMED"}`})
+        }
+        else if(evt.data.results.state=="STREAMED")
+        {
+          document.getElementById('progress_div').innerHTML+="Big file downloads done.";
+        }
+      }
+      else if(evt.data.progress)
+      {
+        if(evt.data.progress>0 && evt.data.progress2>0 && evt.data.progress<10485760 && evt.data.progress2<4194304)
+        {
+          document.getElementById('streamInfo').innerHTML="Parallel streaming is working";
+        }
+        document.getElementById('bar1').style.width=(100.0*evt.data.progress / 10485760)+"%";
+        document.getElementById('bar2').style.width=(100.0*evt.data.progress2 / 4194304)+"%";
+      }
+      else if(evt.data.error)
+      {
+        let error_str=JSON.stringify(evt.data, null, 2);
+        error_str=error_str.replaceAll("\\n","<br\>");
+        document.getElementById('result_div').innerHTML=error_str;
+      }
+    }
+
+    pyodide.postMessage({python:`
+import js
+import micropip
+import asyncio
+await micropip.install("requests")
+await micropip.install("${new URL("pyodide_http-0.0.8-py3-none-any.whl",location.href)}")
+print("Installed pyodide-http")
+import pyodide_http
+pyodide_http.patch_all()            
+{"state":"INITED"}
+      `})
+
+
+  </script>
+</head>
+<body>
+  <h1>Pyodide image should appear below</h1>
+  <div id="result_div"></div>
+  <h1>If streaming is working, you should see both progress bars rise at the same time.</h1>
+  <div id="progress_div">
+    <div id="progress1" style="width:50%;height:2em;border-style:solid;margin:.1em;border-width:.5em;border-color:black;background-color:gray"><div id="bar1" style="width:1%;height:100%;background-color:green"></div></div>
+    <div id="progress2" style="width:50%;height:2em;border-style:solid;margin:.1em;border-width:.5em;;border-color:black;background-color:gray"><div id="bar2" style="width:1%;height:100%;background-color:green"></div></div>
+    <div id="streamInfo"/>
+  </div>
+
+
+</body>
+</html>

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html> 
+  <head> 
+    <link 
+      rel="stylesheet" 
+      href="https://pyscript.net/alpha/pyscript.css" 
+    /> 
+    <script 
+      defer 
+      src="https://pyscript.net/alpha/pyscript.js"
+    ></script> 
+    <py-env>
+    - matplotlib
+    - opencv-python
+    - paths:
+      - http://dreamplan7.cafe24.com/pyscript/pixabay-44686.mp4
+      - http://dreamplan7.cafe24.com/pyscript/haarcascade_frontalface_alt2.xml
+    </py-env>
+    <py-config>
+      - autoclose_loader: true
+      - runtimes:
+        -
+          src: "https://cdn.jsdelivr.net/pyodide/dev/full/pyodide.js"
+          name: pyodide-0.20
+          lang: python
+    </py-config>
+  </head>
+  <body> 
+    <link rel="stylesheet" href="pytable.css"/>
+    프레임번호 : <div id="frameNo"></div>
+    <div id="graph"></div>
+<py-script>
+import matplotlib.pyplot as plt
+import cv2
+from js import document, setInterval, setTimeout
+from pyodide.ffi import create_proxy
+import gc
+
+얼굴인식 = cv2.CascadeClassifier('haarcascade_frontalface_alt2.xml')
+
+캡쳐 = cv2.VideoCapture('pixabay-44686.mp4')
+프레임번호 = 0
+
+def ShowFrame():
+  global 캡쳐, 그래프, cv2, plt, 프레임번호, document, 얼굴인식
+  캡쳐.set(cv2.CAP_PROP_POS_FRAMES, 프레임번호)
+  ret, frame = 캡쳐.read() # 두 개의 값을 반환하므로 두 변수 지정
+  
+  reverse = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  
+  판독된얼굴들 = 얼굴인식.detectMultiScale(reverse)
+  for (x, y, w, h) in 판독된얼굴들:
+    cv2.rectangle(reverse, (x, y), (x + w, y + h), (255, 255, 255), 5)
+  그래프 = plt.figure(figsize=(8, 6))
+  plt.axis('off')
+  ax = plt.gca()
+  ax.margins(x=0, y=0)
+  그래프.tight_layout()
+  plt.imshow(reverse)
+  pyscript.write('graph', 그래프)
+  plt.close(그래프)
+  document.getElementById('frameNo').innerHTML=프레임번호  
+  프레임번호=프레임번호+15
+  gc.collect()  
+  setTimeout(create_proxy(ShowFrame), 0)
+
+setTimeout(create_proxy(ShowFrame), 0)
+
+</py-script> 
+  </body> 
+</html>
